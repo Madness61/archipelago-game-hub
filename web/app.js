@@ -127,11 +127,27 @@ function renderSetup(){
   }).join(''):'<div class="empty">Wähle zuerst ein Spiel in der Runde.</div>';
 }
 function render(){renderLibrary();renderRound();renderSeed();renderSetup();tab(s.tab);}
+function assetLink(g,kind,label){
+  return '<a href="/api/games/'+g.id+'/'+kind+'" download class="btn secondary">'+esc(label)+'</a>';
+}
+function fileStatus(g,kind){
+  if(!g)return 'Noch keine Datei gespeichert. Bitte Datei auswählen.';
+  const yes=kind==='yaml'?g.has_yaml:g.has_apworld;
+  const size=kind==='yaml'?g.yaml_size:g.apworld_size;
+  if(!yes)return kind==='yaml'?'Keine YAML auf dem Server gefunden. Bitte erneut hochladen.':'Keine Custom APWorld hinterlegt.';
+  return '✓ Gespeichert ('+Math.max(1,Math.round(size/1024))+' KB) · '+(kind==='yaml'?'options.yaml':g.world_filename);
+}
 function editGame(g){
   const f=$('gameForm');f.reset();
   $('gameId').value=g?.id||'';$('modalTitle').textContent=g?'Spiel bearbeiten':'Neues Spiel hinzufügen';
   ['title','genre','description','guide','setup_url','mod_url'].forEach(k=>{f.elements.namedItem(k).value=g?.[k]||'';});
-  f.elements.namedItem('yaml').required=!g;
+  f.elements.namedItem('yaml').required=!g || !g.has_yaml;
+  $('yamlSaved').textContent=fileStatus(g,'yaml');
+  $('worldSaved').textContent=fileStatus(g,'apworld');
+  $('yamlSaved').classList.toggle('stored-file',!!g?.has_yaml);
+  $('worldSaved').classList.toggle('stored-file',!!g?.has_apworld);
+  $('yamlDownload').innerHTML=g?.has_yaml?assetLink(g,'yaml','↓ Gespeicherte YAML herunterladen'):'';
+  $('worldDownload').innerHTML=g?.has_apworld?assetLink(g,'apworld','↓ Gespeicherte APWorld herunterladen'):'';
   $('removeFiles').classList.toggle('hidden',!g);
   $('gameModal').showModal();
 }
@@ -139,6 +155,10 @@ function details(g){
   $('detailsTitle').textContent=g.title;
   $('detailsBody').innerHTML=(g.has_cover?'<div class="detail-cover"><img src="/api/games/'+g.id+'/cover" alt="'+esc(g.title)+'"></div>':'')+
   '<p>'+esc(g.description||'Keine Beschreibung.')+'</p><p class="tiny">World: '+esc(g.ap_game)+'</p>'+
+  '<h3>Gespeicherte Spieldateien</h3><div class="detail-actions">'+
+  (g.has_yaml?assetLink(g,'yaml','✓ YAML herunterladen'):'<span class="warning">YAML fehlt auf dem Server.</span>')+
+  (g.has_apworld?assetLink(g,'apworld','✓ APWorld herunterladen'):'<span class="tiny">Keine Custom APWorld hinterlegt.</span>')+
+  '</div>'+
   (g.warning?'<div class="warning">'+esc(g.warning)+'</div>':'')+
   '<h3>Einrichtung</h3>'+(g.guide?'<div class="guide-text">'+esc(g.guide)+'</div>':'<div class="warning">Keine Anleitung hinterlegt.</div>')+
   '<div class="detail-actions">'+(g.setup_url?'<a class="btn secondary" href="'+esc(g.setup_url)+'" target="_blank" rel="noopener noreferrer">Setup</a>':'')+
@@ -159,12 +179,12 @@ async function saveGame(event){
   event.preventDefault();
   const f=$('gameForm'),id=$('gameId').value,payload={};
   for(const k of ['title','genre','description','guide','setup_url','mod_url'])payload[k]=f.elements.namedItem(k).value;
-  for(const [kind,max] of [['yaml',512*1024],['apworld',20*1024*1024],['cover',3*1024*1024]]){
-    payload[kind]=await fileData(f.elements.namedItem(kind).files[0],max);
-  }
-  payload.remove_apworld=f.elements.namedItem('remove_apworld').checked;
-  payload.remove_cover=f.elements.namedItem('remove_cover').checked;
   try{
+    for(const [kind,max] of [['yaml',512*1024],['apworld',20*1024*1024],['cover',3*1024*1024]]){
+      payload[kind]=await fileData(f.elements.namedItem(kind).files[0],max);
+    }
+    payload.remove_apworld=f.elements.namedItem('remove_apworld').checked;
+    payload.remove_cover=f.elements.namedItem('remove_cover').checked;
     await api(id?'/api/games/'+id:'/api/games',{method:'POST',body:payload});
     $('gameModal').close();toast('Spiel für alle Mitspieler gespeichert.');await refresh();
   }catch(e){toast(e.message,true);}

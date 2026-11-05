@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#0b1320"><title>Archipelago Game Hub</title>
+<link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+<div id="auth" class="auth-layer hidden">
+  <div class="auth-card">
+    <div class="brand-lock"><span class="emblem">A</span><div><strong>ARCHIPELAGO</strong><small>GAME HUB</small></div></div>
+    <h1>Eine Bibliothek.<br><span>Alle Welten.</span></h1>
+    <p>Melde dich an oder tritt eurer Gruppe bei, um deine nächste Archipelago-Welt zu wählen.</p>
+    <div class="toggle"><button id="loginToggle" class="active" type="button">Anmelden</button><button id="registerToggle" type="button">Registrieren</button></div>
+    <form id="authForm">
+      <label>Spielername<input name="username" autocomplete="username" required maxlength="16" placeholder="z. B. Manuel"></label>
+      <label>Passwort<input name="password" type="password" autocomplete="current-password" required minlength="8" placeholder="Mindestens 8 Zeichen"></label>
+      <label id="joinWrap" class="hidden">Gruppencode<input name="join_code" autocomplete="off" placeholder="Nur bei bestehender Gruppe"></label>
+      <button class="btn primary wide" id="authSubmit">Anmelden</button>
+    </form>
+    <p class="tiny">Das erste registrierte Konto wird automatisch zum Host.</p>
+  </div>
+</div>
+<div id="shell" class="shell hidden">
+<aside class="sidebar">
+  <div class="brand"><span class="emblem">A</span><div><strong>ARCHIPELAGO</strong><small>GAME HUB</small></div></div>
+  <div class="side-label">WORKSPACE</div>
+  <nav class="nav" aria-label="Hauptmenü">
+    <button class="active" data-tab="library"><span>▦</span> Spielebibliothek</button>
+    <button data-tab="round"><span>◎</span> Meine Runde</button>
+    <button data-tab="seed"><span>⌘</span> Seed & Hosting</button>
+    <button data-tab="setup"><span>↗</span> Installation</button>
+  </nav>
+  <div class="side-lower"><div class="tiny">ARCHIPELAGO RUNDENPLANER</div><div id="sideStatus" class="side-status">System bereit</div><button id="logoutBtn" class="linkbutton">Abmelden ↗</button></div>
+</aside>
+<div class="main">
+<header class="topbar">
+  <div class="breadcrumbs">TEAM WORKSPACE <span>/</span> <b id="crumb">SPIELEBIBLIOTHEK</b></div>
+  <div class="user-pill"><span class="statusdot"></span><span id="userName"></span><span id="roleBadge">SPIELER</span></div>
+</header>
+<div class="content">
+<section data-view="library" class="view">
+  <div class="eyebrow">GEMEINSAMER SPIELEKATALOG <span class="count" id="gameCount">0 SPIELE</span></div>
+  <div class="hero"><div><div class="hero-kicker">MULTIWORLD / COLLECTION</div><h1>Alle Spiele.<br><em>Eine Welt.</em></h1><p>Jeder kann neue Spiele beisteuern. YAML-Vorlagen, APWorlds und Installationsanleitungen stehen anschließend der gesamten Gruppe zur Verfügung.</p><button id="addBtn" class="btn primary">＋ Spiel hinzufügen</button></div><div class="planet" aria-hidden="true"><div class="planet-core">A</div><div class="planet-ring ring1"></div><div class="planet-ring ring2"></div></div></div>
+  <div class="section-heading"><div><h2>Spielebibliothek</h2><p>Ein Spiel hinzufügen, von allen auswählen lassen.</p></div><div class="filters"><input id="search" type="search" placeholder="Spiel suchen ..." aria-label="Spiele suchen"><select id="genreFilter"><option value="">Alle Genres</option></select></div></div>
+  <div id="gameGrid" class="game-grid"></div>
+</section>
+<section data-view="round" class="view hidden">
+  <div class="eyebrow">RUNDE / SPIELAUSWAHL</div>
+  <div class="page-title"><div><h1>Deine nächste <em>Multiworld.</em></h1><p>Ein Spiel pro Mitspieler. Dessen YAML wird beim Generieren automatisch auf seinen Slotnamen angepasst.</p></div><button id="newRound" class="btn primary admin-only">＋ Neue Runde</button></div>
+  <div class="round-banner"><div><span class="tiny">AKTIVE RUNDE</span><h2 id="roundName">Noch keine Runde</h2></div><select id="roundSelect" aria-label="Runde auswählen"></select></div>
+  <div class="section-heading"><div><h2>Mitspieler & Auswahl</h2><p>Alle Spieler wählen selbst aus der gemeinsamen Bibliothek.</p></div><span id="roundProgress" class="count">0 VON 0</span></div>
+  <div id="playersList" class="player-list"></div>
+  <div class="round-actions"><button id="downloadBundle" class="btn secondary">↓ YAML & APWorld-Paket</button><button id="toSeed" class="btn primary">Weiter zur Generierung →</button></div>
+</section>
+<section data-view="seed" class="view hidden">
+  <div class="eyebrow">SEED / HOSTING</div>
+  <div class="page-title"><div><h1>Generieren. <em>Hosten.</em> Spielen.</h1><p>Erzeuge die Multiworld auf deiner Archipelago-Installation und lade anschließend die Seed-ZIP zum Hosting hoch.</p></div></div>
+  <div class="steps"><div class="step"><span>01</span><strong>Auswahl</strong><small>Spieler & YAML</small></div><div class="step"><span>02</span><strong>Generierung</strong><small>Archipelago-Worker</small></div><div class="step"><span>03</span><strong>Hosting</strong><small>archipelago.gg</small></div></div>
+  <div class="two-col">
+    <div class="panel"><div class="panel-head"><span class="panel-icon">⚙</span><div><h2>Seed erstellen</h2><p>Nur der Host kann Seeds generieren.</p></div></div>
+      <div id="seedSummary" class="seed-summary"></div>
+      <label class="check"><input id="apConsent" type="checkbox"><span>Ich habe alle benutzten <b>Custom APWorlds</b> geprüft und vertraue ihren Quellen. Beim Generieren wird deren Python-Code ausgeführt.</span></label>
+      <button id="generateBtn" class="btn primary wide admin-only">⌘ Seed serverseitig generieren</button>
+      <div class="warning">Der Generator muss auf dem Rechner/Server installiert sein, auf dem diese Website läuft. Custom Worlds und ROM-Abhängigkeiten können weitere Einrichtung erfordern.</div>
+    </div>
+    <div class="panel"><div class="panel-head"><span class="panel-icon">↗</span><div><h2>Auf archipelago.gg hosten</h2><p>Offizieller und nachvollziehbarer Weg</p></div></div>
+      <div class="hosting-flow"><div><span>1</span> <b>Fertige Seed-ZIP herunterladen</b><p>Sie enthält die vom Generator erzeugte Multiworld.</p></div><div><span>2</span> <b>Auf archipelago.gg hochladen</b><p>Über „Host Game“ die erzeugte ZIP wählen.</p></div><div><span>3</span> <b>„Create Room“ anklicken</b><p>Raumlink an die Gruppe senden.</p></div></div>
+      <a href="https://archipelago.gg/uploads" target="_blank" rel="noopener noreferrer" class="btn secondary wide">↗ archipelago.gg – Host Game</a>
+      <div class="divider"></div>
+      <label>Raumlink nach Erstellung eintragen<input id="roomUrl" placeholder="https://archipelago.gg/room/..." autocomplete="off"></label>
+      <button id="saveRoomBtn" class="btn secondary admin-only">Raumlink speichern</button>
+      <div id="roomLinkView" class="room-link"></div>
+    </div>
+  </div>
+  <div class="panel build-panel"><div class="panel-head"><span class="panel-icon">▤</span><div><h2>Build-Verlauf</h2><p>Seed-Dateien, Status und Generator-Logs</p></div></div><div id="buildList"></div></div>
+  <div class="panel admin-only" id="settingsPanel"><div class="panel-head"><span class="panel-icon">⌘</span><div><h2>Generator verbinden</h2><p>Installationsverzeichnis auf dem Server hinterlegen</p></div></div><div class="inline-form"><input id="archipelagoDir" placeholder="C:\ProgramData\Archipelago"><button id="saveDir" class="btn secondary">Speichern</button></div><p id="generatorStatus" class="tiny"></p></div>
+</section>
+<section data-view="setup" class="view hidden">
+  <div class="eyebrow">SPIELSTART / SETUP-GUIDES</div>
+  <div class="page-title"><div><h1>Alles bereit <em>zum Start?</em></h1><p>Jeder Mitspieler findet hier die Installations- und Clientanleitungen für sein gewähltes Spiel.</p></div></div>
+  <div class="setup-top"><a href="https://archipelago.gg/tutorial/Archipelago/setup_en" target="_blank" rel="noopener noreferrer">↗ Offizieller Archipelago-Guide</a><a href="https://github.com/ArchipelagoMW/Archipelago/releases" target="_blank" rel="noopener noreferrer">↗ Archipelago herunterladen</a></div>
+  <div id="setupList" class="setup-list"></div>
+</section>
+</div></div></div>
+<dialog id="gameModal" class="modal"><div class="modal-top"><div><span class="eyebrow">SPIELEBIBLIOTHEK</span><h2 id="modalTitle">Spiel hinzufügen</h2></div><button class="close" id="closeModal" aria-label="Schließen">×</button></div>
+  <form id="gameForm"><input type="hidden" id="gameId">
+    <div class="form-grid"><label>Spieltitel *<input name="title" required maxlength="90" placeholder="z. B. Timespinner"></label><label>Genre<input name="genre" maxlength="50" placeholder="Metroidvania"></label></div>
+    <label>Beschreibung<textarea name="description" rows="2" maxlength="400" placeholder="Warum ist das Spiel interessant?"></textarea></label>
+    <div class="form-grid"><label>YAML-Vorlage *<input type="file" name="yaml" accept=".yaml,.yml"><small>Wird bei der Rundenerstellung kopiert und automatisch umbenannt.</small></label><label>Custom APWorld (optional)<input type="file" name="apworld" accept=".apworld"><small>Im Archipelago-Installer enthaltene Worlds benötigen keine APWorld.</small></label></div>
+    <label>Cover-Bild (optional)<input type="file" name="cover" accept="image/png,image/jpeg,image/webp"></label>
+    <div class="form-grid"><label>Setup-Anleitung (URL)<input type="url" name="setup_url" placeholder="https://..."></label><label>Mod-/Client-Download (URL)<input type="url" name="mod_url" placeholder="https://..."></label></div>
+    <label>Schritt-für-Schritt-Anleitung<textarea name="guide" rows="5" maxlength="4000" placeholder="1. Mod herunterladen ...&#10;2. Spiel vorbereiten ...&#10;3. Mit Slotname und Server verbinden ..."></textarea></label>
+    <div id="removeFiles" class="form-grid hidden"><label class="check"><input name="remove_apworld" type="checkbox">APWorld entfernen</label><label class="check"><input name="remove_cover" type="checkbox">Cover entfernen</label></div>
+    <div class="modal-actions"><button type="button" id="cancelModal" class="btn secondary">Abbrechen</button><button class="btn primary" type="submit">Spiel speichern</button></div>
+  </form>
+</dialog>
+<dialog id="detailsModal" class="modal details-dialog"><div class="modal-top"><div><span class="eyebrow">SPIELDETAILS</span><h2 id="detailsTitle"></h2></div><button class="close" id="closeDetails">×</button></div><div id="detailsBody"></div></dialog>
+<div id="toast" role="status" class="toast hidden"></div>
+<script src="/app.js"></script>
+</body></html>

@@ -67,6 +67,13 @@ class APITests(unittest.TestCase):
                 b64=lambda name,payload:{'name':name,'data':base64.b64encode(payload).decode()}
                 r=alice.request('POST','/api/games',{'title':'Hollow Knight','genre':'Metroidvania','description':'Shared','guide':'1. Install setup','yaml':b64('options.yaml',doc)})
                 gid=r['game_id']
+                first_state=alice.state()
+                uploaded=next(g for g in first_state['games'] if g['id']==gid)
+                self.assertTrue(uploaded['has_yaml'])
+                self.assertGreater(uploaded['yaml_size'],0)
+                self.assertFalse(uploaded['has_apworld'])
+                self.assertEqual(doc,alice.request('GET',f'/api/games/{gid}/yaml'))
+                self.assertEqual(doc,(home/'data'/'uploads'/gid/'options.yaml').read_bytes())
                 round_id=alice.request('POST','/api/rounds',{'title':'Test World'})['id']
                 alice.request('POST','/api/picks',{'round_id':round_id,'game_id':gid})
                 bob.request('POST','/api/auth/register',{'username':'Bob','password':'password-b','join_code':'test-join-code'})

@@ -266,8 +266,14 @@ def state(sess):
         picks = [dict(r) for r in c.execute('SELECT * FROM picks')]
         builds = [dict(r) for r in c.execute('SELECT id,round_id,status,filename,created FROM builds ORDER BY created DESC LIMIT 20')]
     for g in games:
-        g['has_apworld']=bool(g['world_filename'])
-        g['has_cover']=bool(g['cover_type'])
+        folder = filedir(g['id'])
+        yaml_file = folder / 'options.yaml'
+        world_file = folder / 'world.apworld'
+        g['has_yaml'] = yaml_file.is_file()
+        g['yaml_size'] = yaml_file.stat().st_size if g['has_yaml'] else 0
+        g['has_apworld'] = bool(g['world_filename'] and world_file.is_file())
+        g['apworld_size'] = world_file.stat().st_size if g['has_apworld'] else 0
+        g['has_cover'] = bool(g['cover_type'] and (folder / 'cover').is_file())
         g.pop('cover_type',None)
     ap = installation()
     return {'user':{'id':sess['id'],'username':sess['username'],'admin':bool(sess['admin'])},
@@ -428,6 +434,19 @@ class Handler(BaseHTTPRequestHandler):
             with db() as c:c.execute('DELETE FROM games WHERE id=?',(gid,))
             shutil.rmtree(filedir(gid),ignore_errors=True)
             return self.send_data(200,{'ok':True})
+        m=re.fullmatch(r'/api/games/([a-f0-9]{32})/(yaml|apworld)',path)
+        if m and method=='GET':
+            gid, kind = m.groups()
+            with db() as c:
+                row=c.execute('SELECT world_filename FROM games WHERE id=?',(gid,)).fetchone()
+            if not row: fail('Spiel nicht vorhanden.',404)
+            if kind == 'apworld' and not row['world_filename']:
+                fail('Für dieses Spiel wurde keine Custom APWorld hinterlegt.',404)
+            filename = 'options.yaml' if kind == 'yaml' else row['world_filename']
+            stored = filedir(gid) / ('options.yaml' if kind == 'yaml' else 'world.apworld')
+            if not stored.is_file(): fail('Hochgeladene Datei fehlt auf dem Server.',404)
+            return self.send_data(200,stored.read_bytes(),'application/octet-stream',
+                                  {'Content-Disposition':f'attachment; filename="{filename}"'})
         m=re.fullmatch(r'/api/games/([a-f0-9]{32})/cover',path)
         if m and method=='GET':
             with db() as c:row=c.execute('SELECT cover_type FROM games WHERE id=?',(m.group(1),)).fetchone()
